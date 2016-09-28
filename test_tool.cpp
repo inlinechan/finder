@@ -1,7 +1,7 @@
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/Basic/FileManager.h"
+#include "clang/Basic/SourceManager.h"
 #include "clang/Driver/Options.h"
 #include "clang/Frontend/ASTConsumers.h"
 #include "clang/Frontend/CompilerInstance.h"
@@ -22,19 +22,20 @@ using namespace llvm;
 
 class IndexerASTConsumer : public clang::ASTConsumer {
 public:
-  IndexerASTConsumer(clang::FileManager &fileManager)
-      : FileManager(fileManager) {}
+  IndexerASTConsumer(clang::SourceManager &sourceManager)
+      : SourceManager(sourceManager) {}
   ~IndexerASTConsumer() override {}
 
 private:
   void HandleTranslationUnit(clang::ASTContext &ctx);
 
-  clang::FileManager &FileManager;
+  clang::SourceManager &SourceManager;
 };
 
 class ASTIndexer : clang::RecursiveASTVisitor<ASTIndexer> {
 public:
-  ASTIndexer(clang::FileManager &fileManager) : FileManager(fileManager) {}
+  ASTIndexer(clang::SourceManager &sourceManager)
+      : SourceManager(sourceManager) {}
 
   void indexDecl(clang::Decl *d) { TraverseDecl(d); }
 
@@ -47,7 +48,7 @@ private:
   void RecordDeclRefExpr(clang::NamedDecl *d, clang::SourceLocation loc,
                          clang::Expr *e);
 
-  clang::FileManager &FileManager;
+  clang::SourceManager &SourceManager;
 };
 
 bool ASTIndexer::TraverseDecl(clang::Decl *d) { return base::TraverseDecl(d); }
@@ -64,12 +65,14 @@ void ASTIndexer::RecordDeclRefExpr(clang::NamedDecl *d,
   assert(d != nullptr);
 
   if (llvm::isa<clang::FunctionDecl>(*d)) {
-    std::cout << d->getName().str() << ":" << loc.getRawEncoding() << std::endl;
+    std::string fileName(SourceManager.getFilename(loc).str());
+    std::cout << fileName << ":" << (loc.getRawEncoding() - 1) << ":"
+              << d->getName().str() << std::endl;
   }
 }
 
 void IndexerASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
-  ASTIndexer iv(FileManager);
+  ASTIndexer iv(SourceManager);
   iv.indexDecl(ctx.getTranslationUnitDecl());
 }
 
@@ -83,7 +86,7 @@ std::unique_ptr<clang::ASTConsumer>
 IndexerAction::CreateASTConsumer(clang::CompilerInstance &CI,
                                  StringRef InFile) {
   return std::unique_ptr<clang::ASTConsumer>(
-      new IndexerASTConsumer(CI.getFileManager()));
+      new IndexerASTConsumer(CI.getSourceManager()));
 }
 
 static cl::OptionCategory MyToolCategory("My tool options");
