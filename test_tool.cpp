@@ -34,6 +34,8 @@ private:
 
 class ASTIndexer : clang::RecursiveASTVisitor<ASTIndexer> {
 public:
+  ASTIndexer(clang::FileManager &fileManager) : FileManager(fileManager) {}
+
   void indexDecl(clang::Decl *d) { TraverseDecl(d); }
 
 private:
@@ -41,12 +43,33 @@ private:
   friend class clang::RecursiveASTVisitor<ASTIndexer>;
 
   bool TraverseDecl(clang::Decl *d);
+  bool VisitDeclRefExpr(clang::DeclRefExpr *e);
+  void RecordDeclRefExpr(clang::NamedDecl *d, clang::SourceLocation loc,
+                         clang::Expr *e);
+
+  clang::FileManager &FileManager;
 };
 
 bool ASTIndexer::TraverseDecl(clang::Decl *d) { return base::TraverseDecl(d); }
 
+bool ASTIndexer::VisitDeclRefExpr(clang::DeclRefExpr *e) {
+  RecordDeclRefExpr(e->getDecl(), e->getLocation(), e);
+  return true;
+}
+
+#include <iostream>
+
+void ASTIndexer::RecordDeclRefExpr(clang::NamedDecl *d,
+                                   clang::SourceLocation loc, clang::Expr *e) {
+  assert(d != nullptr);
+
+  if (llvm::isa<clang::FunctionDecl>(*d)) {
+    std::cout << d->getName().str() << ":" << loc.getRawEncoding() << std::endl;
+  }
+}
+
 void IndexerASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
-  ASTIndexer iv;
+  ASTIndexer iv(FileManager);
   iv.indexDecl(ctx.getTranslationUnitDecl());
 }
 
