@@ -47,6 +47,8 @@ private:
   bool VisitDeclRefExpr(clang::DeclRefExpr *e);
   void RecordDeclRefExpr(clang::NamedDecl *d, clang::SourceLocation loc,
                          clang::Expr *e);
+  bool VisitDecl(clang::Decl *d);
+  void RecordDeclRef(clang::NamedDecl *d, clang::SourceLocation beginLoc);
 
   clang::SourceManager &SourceManager;
 };
@@ -69,6 +71,32 @@ void ASTIndexer::RecordDeclRefExpr(clang::NamedDecl *d,
     std::cout << fileName << ":" << (loc.getRawEncoding() - 1) << ":"
               << d->getName().str() << std::endl;
   }
+}
+
+bool ASTIndexer::VisitDecl(clang::Decl *d) {
+  if (clang::NamedDecl *nd = llvm::dyn_cast<clang::NamedDecl>(d)) {
+    clang::SourceLocation loc = nd->getLocation();
+    if (clang::FunctionDecl *fd = llvm::dyn_cast<clang::FunctionDecl>(d)) {
+      if (fd->getTemplateInstantiationPattern() != NULL) {
+      } else {
+        // bool isDefinition = fd->isThisDeclarationADefinition();
+        if (llvm::isa<clang::CXXMethodDecl>(fd)) {
+
+        } else {
+          RecordDeclRef(nd, loc);
+        }
+      }
+    }
+  }
+  return true;
+}
+
+void ASTIndexer::RecordDeclRef(clang::NamedDecl *d,
+                               clang::SourceLocation beginLoc) {
+  assert(d != NULL);
+  std::string fileName(SourceManager.getFilename(beginLoc).str());
+  std::cout << fileName << ":" << (beginLoc.getRawEncoding() - 1) << ":"
+            << d->getName().str() << std::endl;
 }
 
 void IndexerASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
