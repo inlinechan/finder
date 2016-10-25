@@ -69,7 +69,7 @@ void ASTIndexer::RecordDeclRefExpr(clang::NamedDecl *d,
   if (llvm::isa<clang::FunctionDecl>(*d)) {
     std::string fileName(SourceManager.getFilename(loc).str());
     std::cout << fileName << ":" << (loc.getRawEncoding() - 1) << ":"
-              << d->getName().str() << std::endl;
+              << d->getQualifiedNameAsString() << std::endl;
   }
 }
 
@@ -81,7 +81,7 @@ bool ASTIndexer::VisitDecl(clang::Decl *d) {
       } else {
         // bool isDefinition = fd->isThisDeclarationADefinition();
         if (llvm::isa<clang::CXXMethodDecl>(fd)) {
-
+          RecordDeclRef(nd, loc);
         } else {
           RecordDeclRef(nd, loc);
         }
@@ -96,7 +96,7 @@ void ASTIndexer::RecordDeclRef(clang::NamedDecl *d,
   assert(d != NULL);
   std::string fileName(SourceManager.getFilename(beginLoc).str());
   std::cout << fileName << ":" << (beginLoc.getRawEncoding() - 1) << ":"
-            << d->getName().str() << std::endl;
+            << d->getQualifiedNameAsString() << std::endl;
 }
 
 void IndexerASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
