@@ -22,6 +22,7 @@ execute_process(COMMAND llvm-config-3.8 --system-libs
 set(CLANG_LIBS " -Wl,--start-group -lclangAST -lclangASTMatchers -lclangAnalysis -lclangBasic -lclangDriver -lclangEdit -lclangFrontend -lclangFrontendTool -lclangLex -lclangParse -lclangSema -lclangEdit -lclangRewrite -lclangRewriteFrontend -lclangStaticAnalyzerFrontend -lclangStaticAnalyzerCheckers -lclangStaticAnalyzerCore -lclangSerialization -lclangToolingCore -lclangTooling -lclangFormat -Wl,--end-group ")
 
 add_executable(test_tool test_tool.cpp)
+add_executable(indexer Indexer.cpp)
 
 set(CLANG_LINK_FLAGS
   "${CLANG_LIBS} ${LLVM_LDFLAGS} ${LLVM_LIBS} ${LLVM_SYSTEM_LIBS}")
