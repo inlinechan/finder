@@ -1,24 +1,4 @@
-#include "clang/AST/ASTConsumer.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/Basic/SourceManager.h"
-#include "clang/Driver/Options.h"
-#include "clang/Frontend/ASTConsumers.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Frontend/FrontendAction.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Rewrite/Frontend/FrontendActions.h"
-#include "clang/Tooling/CommonOptionsParser.h"
-#include "clang/Tooling/Tooling.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/TargetSelect.h"
-#include <string>
-#include <vector>
-
-using namespace clang::driver;
-using namespace clang::tooling;
-using namespace llvm;
+#include "Indexer.h"
 
 class IndexerASTConsumer : public clang::ASTConsumer {
 public:
@@ -123,21 +103,6 @@ IndexerAction::CreateASTConsumer(clang::CompilerInstance &CI,
 //   }
 // };
 
-class Indexer {
-  int Argc;
-  const char **Argv;
-
-  cl::OptionCategory MyToolCategory;
-  cl::extrahelp CommonHelp;
-  cl::extrahelp MoreHelp;
-
-public:
-  Indexer(int argc, const char **argv);
-  virtual ~Indexer();
-
-  int index();
-};
-
 Indexer::Indexer(int argc, const char **argv)
     : Argc(argc), Argv(argv), MyToolCategory("My tool options"),
       CommonHelp(CommonOptionsParser::HelpMessage),
@@ -166,9 +131,4 @@ int Indexer::index() {
   FrontendFactory = newFrontendActionFactory<IndexerAction>();
 
   return Tool.run(FrontendFactory.get());
-}
-
-int main(int argc, const char **argv) {
-  Indexer indexer(argc, argv);
-  return indexer.index();
 }
