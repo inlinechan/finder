@@ -66,7 +66,7 @@ void ASTIndexer::RecordDeclRefExpr(clang::NamedDecl *d,
 
   if (llvm::isa<clang::FunctionDecl>(*d)) {
     std::string fileName(SourceManager.getFilename(loc).str());
-    llvm::outs() << fileName << ":" << (loc.getRawEncoding() - 1) << ":"
+    llvm::outs() << fileName << ":" << SourceManager.getFileOffset(loc) << ":"
                  << d->getQualifiedNameAsString() << '\n';
   }
 }
@@ -93,7 +93,7 @@ void ASTIndexer::RecordDeclRef(clang::NamedDecl *d,
                                clang::SourceLocation beginLoc) {
   assert(d != NULL);
   std::string fileName(SourceManager.getFilename(beginLoc).str());
-  llvm::outs() << fileName << ":" << (beginLoc.getRawEncoding() - 1) << ":"
+  llvm::outs() << fileName << ":" << SourceManager.getFileOffset(beginLoc)<< ":"
                << d->getQualifiedNameAsString() << '\n';
 }
 
