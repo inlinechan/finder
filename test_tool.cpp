@@ -48,7 +48,8 @@ private:
   void RecordDeclRefExpr(clang::NamedDecl *d, clang::SourceLocation loc,
                          clang::Expr *e);
   bool VisitDecl(clang::Decl *d);
-  void RecordDeclRef(clang::NamedDecl *d, clang::SourceLocation beginLoc);
+  void RecordDeclRef(clang::NamedDecl *d, clang::SourceLocation beginLoc,
+                     bool isDefinition);
 
   clang::SourceManager &SourceManager;
 };
@@ -67,7 +68,7 @@ void ASTIndexer::RecordDeclRefExpr(clang::NamedDecl *d,
   if (llvm::isa<clang::FunctionDecl>(*d)) {
     std::string fileName(SourceManager.getFilename(loc).str());
     llvm::outs() << fileName << ":" << SourceManager.getFileOffset(loc) << ":"
-                 << d->getQualifiedNameAsString() << '\n';
+                 << d->getQualifiedNameAsString() << ' ' << 'R' << '\n';
   }
 }
 
@@ -77,12 +78,9 @@ bool ASTIndexer::VisitDecl(clang::Decl *d) {
     if (clang::FunctionDecl *fd = llvm::dyn_cast<clang::FunctionDecl>(d)) {
       if (fd->getTemplateInstantiationPattern() != NULL) {
       } else {
-        // bool isDefinition = fd->isThisDeclarationADefinition();
-        if (llvm::isa<clang::CXXMethodDecl>(fd)) {
-          RecordDeclRef(nd, loc);
-        } else {
-          RecordDeclRef(nd, loc);
-        }
+        bool isDefinition = fd->isThisDeclarationADefinition();
+        // bool isMethod = llvm::isa<clang::CXXMethodDecl>(fd);
+        RecordDeclRef(nd, loc, isDefinition);
       }
     }
   }
@@ -90,11 +88,13 @@ bool ASTIndexer::VisitDecl(clang::Decl *d) {
 }
 
 void ASTIndexer::RecordDeclRef(clang::NamedDecl *d,
-                               clang::SourceLocation beginLoc) {
+                               clang::SourceLocation beginLoc,
+                               bool isDefinition) {
   assert(d != NULL);
   std::string fileName(SourceManager.getFilename(beginLoc).str());
   llvm::outs() << fileName << ":" << SourceManager.getFileOffset(beginLoc)<< ":"
-               << d->getQualifiedNameAsString() << '\n';
+               << d->getQualifiedNameAsString() << ' '
+               << (isDefinition ? 'D' : 'P') << '\n';
 }
 
 void IndexerASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
