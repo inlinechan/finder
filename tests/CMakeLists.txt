@@ -1,4 +1,5 @@
 add_subdirectory(googletest-release-1.8.0)
+add_subdirectory(basic)
 
 include_directories(${gtest_SOURCE_DIR}/inlcude ${gtest_SOURCE_DIR})
 
