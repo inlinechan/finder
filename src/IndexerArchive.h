@@ -9,8 +9,9 @@
 
 class IndexerArchive {
 public:
-  void recordRef(const std::string &fileName, unsigned beginOffset,
-                 const std::string &qualifiedString, ReferenceType type) {
+  virtual void recordRef(const std::string &fileName, unsigned beginOffset,
+                         const std::string &qualifiedString,
+                         ReferenceType type) {
     llvm::outs() << fileName << ":" << beginOffset << ":" << qualifiedString
                  << ' ' << referenceTypeToString(type) << '\n';
   }
