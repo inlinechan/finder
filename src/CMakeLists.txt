@@ -1,1 +1,1 @@
-add_executable(indexer Indexer.cpp Type.cpp IndexerMain.cpp)
+add_executable(indexer Indexer.cpp Type.cpp ASTIndexer.cpp IndexerMain.cpp)
