@@ -82,10 +82,18 @@ void IndexerASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
   iv.indexDecl(ctx.getTranslationUnitDecl());
 }
 
+class IndexerArchive {
+};
+
 class IndexerAction : public clang::ASTFrontendAction {
+public:
+  IndexerAction(IndexerArchive &ar) : Archive(ar) {}
+
 protected:
   std::unique_ptr<clang::ASTConsumer>
   CreateASTConsumer(clang::CompilerInstance &CI, StringRef InFile) override;
+
+  IndexerArchive &Archive;
 };
 
 std::unique_ptr<clang::ASTConsumer>
@@ -102,6 +110,21 @@ IndexerAction::CreateASTConsumer(clang::CompilerInstance &CI,
 //     return std::unique_ptr<clang::ASTConsumer>(new IndexerASTConsumer);
 //   }
 // };
+
+template <typename T, typename ArchiveT>
+std::unique_ptr<FrontendActionFactory>
+newFrontendActionFactory(ArchiveT &arch) {
+  class SimpleFrontendActionFactory : public FrontendActionFactory {
+    ArchiveT &Archive;
+
+  public:
+    SimpleFrontendActionFactory(ArchiveT &arch) : Archive(arch) {}
+    clang::FrontendAction *create() override { return new T(Archive); }
+  };
+
+  return std::unique_ptr<FrontendActionFactory>(
+      new SimpleFrontendActionFactory(arch));
+}
 
 Indexer::Indexer(int argc, const char **argv)
     : Argc(argc), Argv(argv), MyToolCategory("My tool options"),
@@ -128,7 +151,8 @@ int Indexer::index() {
 
   // FrontendFactory = newFrontendActionFactory(&CheckFactory);
   // FrontendFactory = newFrontendActionFactory<clang::HTMLPrintAction>();
-  FrontendFactory = newFrontendActionFactory<IndexerAction>();
+  IndexerArchive ar;
+  FrontendFactory = newFrontendActionFactory<IndexerAction>(ar);
 
   return Tool.run(FrontendFactory.get());
 }
