@@ -1,4 +1,5 @@
 #include "Indexer.h"
+#include "IndexerArchive.h"
 
 // Usage
 //
@@ -14,6 +15,7 @@
 // /home/hyungchan/source/c++/finder/tests/basic/basic.cpp:223:add D
 // 1 warning generated.
 int main(int argc, const char **argv) {
-  Indexer indexer(argc, argv);
+  IndexerArchive archive;
+  Indexer indexer(argc, argv, archive);
   return indexer.index();
 }

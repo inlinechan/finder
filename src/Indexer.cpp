@@ -174,8 +174,9 @@ newFrontendActionFactory(ArchiveT &arch) {
       new SimpleFrontendActionFactory(arch));
 }
 
-Indexer::Indexer(int argc, const char **argv)
-    : Argc(argc), Argv(argv), MyToolCategory("My tool options"),
+Indexer::Indexer(int argc, const char **argv, IndexerArchive &archive)
+    : Argc(argc), Argv(argv), Archive(archive),
+      MyToolCategory("My tool options"),
       CommonHelp(CommonOptionsParser::HelpMessage),
       MoreHelp("\nMore help text...") {}
 
@@ -199,8 +200,7 @@ int Indexer::index() {
 
   // FrontendFactory = newFrontendActionFactory(&CheckFactory);
   // FrontendFactory = newFrontendActionFactory<clang::HTMLPrintAction>();
-  IndexerArchive ar;
-  FrontendFactory = newFrontendActionFactory<IndexerAction>(ar);
+  FrontendFactory = newFrontendActionFactory<IndexerAction>(Archive);
 
   return Tool.run(FrontendFactory.get());
 }
