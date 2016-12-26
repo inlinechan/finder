@@ -1,21 +1,38 @@
 #include "Indexer.h"
 
+class IndexerArchive {
+};
+
+class IndexerContext {
+public:
+  IndexerContext(clang::SourceManager &sourceManager,
+                 clang::Preprocessor &preprocessor, IndexerArchive &archive) :
+      SourceManager(sourceManager) {}
+  clang::SourceManager &getSourceManager() { return SourceManager; }
+
+private:
+  clang::SourceManager &SourceManager;
+};
+
+
 class IndexerASTConsumer : public clang::ASTConsumer {
 public:
-  IndexerASTConsumer(clang::SourceManager &sourceManager)
-      : SourceManager(sourceManager) {}
+  IndexerASTConsumer(IndexerContext &context)
+      : Context(context), SourceManager(Context.getSourceManager()) {}
   ~IndexerASTConsumer() override {}
 
 private:
   void HandleTranslationUnit(clang::ASTContext &ctx);
 
+  IndexerContext &Context;
   clang::SourceManager &SourceManager;
 };
 
 class ASTIndexer : clang::RecursiveASTVisitor<ASTIndexer> {
 public:
-  ASTIndexer(clang::SourceManager &sourceManager)
-      : SourceManager(sourceManager) {}
+  ASTIndexer(IndexerContext &context,
+             clang::SourceManager &sourceManager)
+      : Context(context), SourceManager(sourceManager) {}
 
   void indexDecl(clang::Decl *d) { TraverseDecl(d); }
 
@@ -31,6 +48,7 @@ private:
   void RecordDeclRef(clang::NamedDecl *d, clang::SourceLocation beginLoc,
                      bool isDefinition);
 
+  IndexerContext &Context;
   clang::SourceManager &SourceManager;
 };
 
@@ -78,29 +96,36 @@ void ASTIndexer::RecordDeclRef(clang::NamedDecl *d,
 }
 
 void IndexerASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
-  ASTIndexer iv(SourceManager);
+  ASTIndexer iv(Context, SourceManager);
   iv.indexDecl(ctx.getTranslationUnitDecl());
 }
 
-class IndexerArchive {
-};
-
 class IndexerAction : public clang::ASTFrontendAction {
 public:
-  IndexerAction(IndexerArchive &ar) : Archive(ar) {}
+  IndexerAction(IndexerArchive &ar) : Archive(ar), Context(nullptr) {}
 
 protected:
   std::unique_ptr<clang::ASTConsumer>
   CreateASTConsumer(clang::CompilerInstance &CI, StringRef InFile) override;
 
+  IndexerContext& getContext(clang::CompilerInstance &CI) {
+    if (!Context) {
+      Context = new IndexerContext(CI.getSourceManager(),
+                                   CI.getPreprocessor(),
+                                   Archive);
+    }
+    return *Context;
+  }
+
   IndexerArchive &Archive;
+  IndexerContext* Context;
 };
 
 std::unique_ptr<clang::ASTConsumer>
 IndexerAction::CreateASTConsumer(clang::CompilerInstance &CI,
                                  StringRef InFile) {
   return std::unique_ptr<clang::ASTConsumer>(
-      new IndexerASTConsumer(CI.getSourceManager()));
+      new IndexerASTConsumer(getContext(CI)));
 }
 
 // class ClangCheckActionFactory {
