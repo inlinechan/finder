@@ -1,17 +1,45 @@
 #include "Indexer.h"
 
+enum class ReferenceType {
+  RT_FUNCTION_DECL,
+  RT_FUNCTION_DEFI,
+  RT_FUNCTION_REF
+};
+
+const std::string referenceTypeToString(ReferenceType type) {
+  switch (type) {
+  case ReferenceType::RT_FUNCTION_DECL:
+    return "RT_FUNCTION_DECL";
+  case ReferenceType::RT_FUNCTION_DEFI:
+    return "RT_FUNCTION_DEFI";
+  case ReferenceType::RT_FUNCTION_REF:
+    return "RT_FUNCTION_REF";
+  }
+  return "Unknown";
+}
+
 class IndexerArchive {
+public:
+  void recordRef(const std::string &fileName, unsigned beginOffset,
+                 const std::string &qualifiedString, ReferenceType type) {
+    llvm::outs() << fileName << ":" << beginOffset << ":" << qualifiedString
+                 << ' ' << referenceTypeToString(type) << '\n';
+  }
 };
 
 class IndexerContext {
 public:
   IndexerContext(clang::SourceManager &sourceManager,
-                 clang::Preprocessor &preprocessor, IndexerArchive &archive) :
-      SourceManager(sourceManager) {}
+                 clang::Preprocessor &preprocessor, IndexerArchive &archive)
+      : SourceManager(sourceManager), Preprocessor(preprocessor),
+        Archive(archive) {}
   clang::SourceManager &getSourceManager() { return SourceManager; }
+  IndexerArchive &getIndexerArchive() { return Archive; }
 
 private:
   clang::SourceManager &SourceManager;
+  clang::Preprocessor &Preprocessor;
+  IndexerArchive &Archive;
 };
 
 
@@ -64,9 +92,9 @@ void ASTIndexer::RecordDeclRefExpr(clang::NamedDecl *d,
   assert(d != nullptr);
 
   if (llvm::isa<clang::FunctionDecl>(*d)) {
-    std::string fileName(SourceManager.getFilename(loc).str());
-    llvm::outs() << fileName << ":" << SourceManager.getFileOffset(loc) << ":"
-                 << d->getQualifiedNameAsString() << ' ' << 'R' << '\n';
+    Context.getIndexerArchive().recordRef(
+        SourceManager.getFilename(loc).str(), SourceManager.getFileOffset(loc),
+        d->getQualifiedNameAsString(), ReferenceType::RT_FUNCTION_REF);
   }
 }
 
@@ -89,10 +117,11 @@ void ASTIndexer::RecordDeclRef(clang::NamedDecl *d,
                                clang::SourceLocation beginLoc,
                                bool isDefinition) {
   assert(d != NULL);
-  std::string fileName(SourceManager.getFilename(beginLoc).str());
-  llvm::outs() << fileName << ":" << SourceManager.getFileOffset(beginLoc)<< ":"
-               << d->getQualifiedNameAsString() << ' '
-               << (isDefinition ? 'D' : 'P') << '\n';
+  Context.getIndexerArchive().recordRef(
+      SourceManager.getFilename(beginLoc).str(),
+      SourceManager.getFileOffset(beginLoc), d->getQualifiedNameAsString(),
+      isDefinition ? ReferenceType::RT_FUNCTION_DEFI
+                   : ReferenceType::RT_FUNCTION_DECL);
 }
 
 void IndexerASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
