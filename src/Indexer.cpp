@@ -1,4 +1,5 @@
 #include "Indexer.h"
+#include "IndexerArchive.h"
 
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
@@ -20,33 +21,6 @@
 
 using namespace clang::driver;
 using namespace clang::tooling;
-
-enum class ReferenceType {
-  RT_FUNCTION_DECL,
-  RT_FUNCTION_DEFI,
-  RT_FUNCTION_REF
-};
-
-const std::string referenceTypeToString(ReferenceType type) {
-  switch (type) {
-  case ReferenceType::RT_FUNCTION_DECL:
-    return "RT_FUNCTION_DECL";
-  case ReferenceType::RT_FUNCTION_DEFI:
-    return "RT_FUNCTION_DEFI";
-  case ReferenceType::RT_FUNCTION_REF:
-    return "RT_FUNCTION_REF";
-  }
-  return "Unknown";
-}
-
-class IndexerArchive {
-public:
-  void recordRef(const std::string &fileName, unsigned beginOffset,
-                 const std::string &qualifiedString, ReferenceType type) {
-    llvm::outs() << fileName << ":" << beginOffset << ":" << qualifiedString
-                 << ' ' << referenceTypeToString(type) << '\n';
-  }
-};
 
 class IndexerContext {
 public:
